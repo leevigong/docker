@@ -1,0 +1,56 @@
+**docker 실습 시나리오**
+1. network 구성
+2. mysql 컨테이너 설치
+3. 워드프레스 컨테이너 설치
+4. 워드프레스 <-> mysql 연동
+
+워드프레스: 웹 사이트를 만들기 위한 소프트웨어
+- 워드프레스가 동작하려면 워드프레스 프로그램 외에도 아파치, 데이터베이스, PHP 런타임 필요
+- 워드프레스 이미지에는 워드프레스 프로그램 + 아파치 + PHP 런타임 포함(➡️ DB는 따로 연결해야함)
+- 워드프레스는 DB중 mysql, mariaDB를 지원
+
+  <img width="1202" alt="image" src="https://github.com/user-attachments/assets/56c404f4-7404-4e2e-9bb3-ef639cf529f8">
+
+#### 1. 네트워크 구성
+도커 네트워크 생성
+- 워드프레스 프로그램이 MySQL에 저장된 데이터를 읽고 쓰기 위해 두 컨테이너가 연결되어야함
+- 가상 네트워크를 생성하고 이 네트워크에 두 개의 컨테이너를 소속시켜 두 컨테이너를 연결<br>
+`docker network create wordpress-net`
+
+#### 2. MySQL 컨테이너 생성
+- DB 서버를 미리 구축하고 설정한 후 워드프레스 컨테이너와 연동하여 사용하기 위해 MySQL 컨테이너를 먼저 생성<br>
+```bash
+docker run --name mysql000 -dit --net=wordpress-net -e MYSQL_ROOT_PASSWORD=1234 -e MYSQL_DATABASE=wordpress000db -e MYSQL_USER=user -e MYSQL_PASSWORD=user000 mysql:8.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+```
+
+<details>
+  <summary>위의 코드 설명</summary>
+  
+  --net=wordpress-net                  : wordpress-net 네트워크에 컨테이너 연결  
+  -e MYSQL_ROOT_PASSWORD=1234          : MYSQL 루트 계정 비밀번호 설정  
+  -e MYSQL_DATABASE=wordpress000db     : MYSQL 데이터베이스 이름 설정  
+  -e MYSQL_USER=user                   : MYSQL 생성할 사용자 계정 이름 설정  
+  -e MYSQL_PASSWORD=user000               : 사용자 계정 비밀번호 설정  
+  --character-set-server=utf8mb4       : MYSQL서버 기본 문자셋 설정  
+  --collation-server=utf8mb4_unicode_ci : MYSQL서버 기본 콜레이션(정렬규칙) 설정  
+  --default-authentication-plugin=mysql_native_password : MYSQL 사용자 계정의 기본 인증 플러그인 설정
+</details>
+
+
+#### 3. 워드프레스 컨테이너 생성
+```bash
+docker run --name wordpress000 -dit --net=wordpress-net -p 8085:80 -e WORDPRESS_DB_HOST=mysql000 -e WORDPRESS_DB_NAME=wordpress000db -e WORDPRESS_DB_USER=user -e WORDPRESS_DB_PASSWORD=user000 wordpress
+```
+<details>
+  <summary>위의 코드 설명</summary>
+
+  --net=wordpress-net                 : wordpress-net 네트워크에 컨테이너 연결  
+  -p 8085:80                          : 호스트 8085 포트와 컨테니어 80포트 매핑 -> 외부에서 컨테이너 접근 가능  
+  -e WORDPRESS_DB_HOST=mysql000       : 워드프레스가 사용할 MYSQL 데이터베이스 호스트 주소 설정  
+  -e WORDPRESS_DB_NAME=wordpress000db : 워드프레스가 사용할 MYSQL 데이터베이스 이름 설정  
+  -e WORDPRESS_DB_USER=user           : 워드프레스와 연결할 MYSQL 데이터베이스 사용자 계정 이름 설정  
+  -e WORDPRESS_DB_PASSWORD=user000    : 위 사용자 계정의 비밀번호 설정  
+</details>
+
+#### 4. 워드프레스 <-> mysql 연동
+웹브라우저를 통해 http://localhost:8085
