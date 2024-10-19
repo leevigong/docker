@@ -128,6 +128,8 @@ IT환경에서 격리된 패키징된 컴퓨팅환경을 제공
 
 #### 이미지 목록 출력: `docker image ls`
 
+#### 컨테이너에서 이미지 추출: `docker commit [컨테이너 이름] [새로운 이미지 이름]`
+
 ### 네트워크 생성
 #### 네트워크 생성: `docker network create [네트워크 이름]`
 #### 네트워크 정보 확인: `docker network inspect [네트워크 이름]`
