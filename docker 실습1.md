@@ -54,3 +54,20 @@ docker run --name wordpress000 -dit --net=wordpress-net -p 8085:80 -e WORDPRESS_
 
 #### 4. 워드프레스 <-> mysql 연동
 웹브라우저를 통해 http://localhost:8085
+
+---
+**MySQL 컨테이너 내부에 접속해서 워드프레스와 연동이 되어있는지 가입한 계정 정보 확인**<br>
+`docker exec -it mysql000 bash`
+```sql
+mysql -u user -p;
+use wordpress000;
+show tables;
+select * from wp_users;
+exit
+```
+---
+**실습1 사이트 구축 정리**
+- 컨테이너 종료: `docker stop mysql000 wordpress000`
+- 컨테이너 삭제: `docker rm mysql000 wordpress000`
+- 이미지 삭제: `docker image rm mysql wordpress`
+- 네트워크 삭제: `docker netword rm wordpress-net`
