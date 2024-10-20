@@ -1,0 +1,133 @@
+**php mysql 연결 및 tasks app 개발 시나리오**
+- php, mysql 컨테이너 실행
+- 개발 환경 구축 및 tasks app 설치
+- front, back end 컨테이너 분할
+
+#### 1. php, mysql 컨테이너 실행
+1. 공유 네트워크 생성  
+`docker network create php-mysql`
+
+2. mysql 컨테이너 실행
+```bash
+# 컨테이너 명 : mysql
+# 네트워크 : php-mysql
+# root 패스워드 : 123456
+# database : php-mysql
+# 사용자 계정 : user
+# 사용자 패스워드 : 123456
+# 포트포워드 : 33306:3306
+
+docker run --name mysql -dit -p 33306:3306 --net php-mysql -e MYSQL_ROOT_PASSWORD=123456 -e MYSQL_DATABASE=php-mysql -e MYSQL_USER=user -e MYSQL_PASSWORD=123456 mysql:8.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+# --default-authentication-plugin=mysql_native_password
+```
+
+3-1. php-apache 컨테이너 설치
+
+```bash
+# html 디렉토리 생성
+mkdir html
+mkdir myphpimage
+
+# 도커파일 생성
+cd myphpimage
+nano Dockerfile
+
+# 이미지 빌드
+docker build -t myphpimage ./
+
+cd ..
+```
+
+Dockerfile
+```
+FROM php:8.0-apache
+# 필요한 모든 확장을 활성화
+RUN apt-get update && apt-get install -y zlib1g-dev libpng-dev && docker-php-ext-install mysqli pdo pdo_mysql gd iconv opcache
+```
+
+3-2. 생성한 이미지 기반 myphp 컨테이너 설치
+- 컨테이너 명 : myphp
+- 네트워크 : php-mysql
+- 포트포워드 : 80:80
+- 바인딩마운트 : ./html:/var/www/html  
+`docker run -d -p 80:80 --name myphp --net php-mysql -v ./html:/var/www/html myphpimage`
+
+3-3. 네트워크 상세 정보 확인  
+`docker network inspect php-mysql`  
+<img width="729" alt="image" src="https://github.com/user-attachments/assets/824e9846-8b4f-4af6-8a49-520a816cdc69">
+
+#### 2. tasks app 설치 
+1. 파일 app.zip을 압축해제 후 html 폴더로 이동  
+http://localhost:80/ 접속  
+<img width="1000" alt="image" src="https://github.com/user-attachments/assets/14da94f6-2427-43f0-82f9-17009e69553f">
+
+
+2. mysql 접속 후 테이블 생성
+`docker exec -it mysql bash`  
+
+```sql
+show databases;
+
+use php-mysql;
+
+CREATE TABLE task (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    due_datetime DATETIME
+);
+
+show tables;
+```
+
+3. php와 mysql 연결
+database.php 파일 수정  
+```php
+$mysql_host = "mysql";
+// docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mysql
+$mysql_user = "user";
+$mysql_password = "123456";
+$mysql_db = "php-mysql";
+$connection = mysqli_connect(
+    $mysql_host, $mysql_user, $mysql_password, $mysql_db
+);
+```
+<img width="1708" alt="image" src="https://github.com/user-attachments/assets/8a61bbd0-e263-4824-8359-292a965d9243">  
+
+db들어가서 확인하면 데이터가 잘 저장이 되는 것을 확인할 수 있음  
+<img width="370" alt="image" src="https://github.com/user-attachments/assets/1c5e58cd-426e-4085-83dc-fe502950c148">
+
+#### 3. front, back end 컨테이너 분할
+php 폴더 생성
+mkdir php
+
+서버 프로그램 분할 도커 컨테이너 생성  
+`docker run -d -p 8082:80 --name myserver --net php-mysql -v ./php:/var/www/html myphpimage`
+
+이렇게하면  
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/38c85dad-e909-458e-a551-16abc830d932">
+<img width="300" alt="image" src="https://github.com/user-attachments/assets/fe839173-257a-4e05-a964-06d8c63ebb0f">  
+=> 원래 html 더 상위폴더에 담기는데 어차피 ./php:/var/www/html에서 마운트,, 모르겠다!!
+
+database.php 파일에 CROSS 도메인 이슈 설정
+```php
+header("Access-Control-Allow-Origin: *");
+$mysql_host = "mysql";
+...
+```
+
+app.js 파일 수정
+```javascript
+const hostName = window.location.hostname;
+const hostNameServerUrl = 'http://'+hostName+':8080/';
+// url: hostNameServerUrl+'tasks-list.php' 등으로 변경
+// 이하 app.js 파일 첨부 확인
+```
+<!-- nano /etc/apache2/sites-available/000-default.conf
+<Directory /var/www/html>
+        Options Indexes FollowSymLinks
+        AllowOverride None
+        Require all granted  # 이 줄을 추가합니다.
+    </Directory>
+-->
+
