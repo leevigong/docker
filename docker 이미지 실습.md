@@ -1,19 +1,19 @@
 **컨테이너에서 이미지 추출해 이미지 생성 실습**
 
-#### 1. 아파치 컨테이너 생성
+##### 1. 아파치 컨테이너 생성
 `docker run --name apa -d -p 8092:80 httpd`  
 
-#### 2. 컨테이너에서 현재 실행 중인 상태를 그래도 새로운 이미지로 생성
+##### 2. 컨테이너에서 현재 실행 중인 상태를 그래도 새로운 이미지로 생성
 `docker commit apa new_apa`
 
-#### 3. 이미지 목록 확인 
+##### 3. 이미지 목록 확인 
 `docker images`  
 <img width="518" alt="image" src="https://github.com/user-attachments/assets/1724776e-62f9-4e88-aa3d-4a8fe7ddb5cf">
 
 ---
 **도커 파일(Dockerfile)로 이미지 생성 실습**
 
-#### 1. apa_folder 디렉토리에 Dockerfile 생성
+##### 1. apa_folder 디렉토리에 Dockerfile 생성
 `nano ./apa_folder/dockerfile`  
 ```bash
 # 사용할 베이스 이미지 지정
@@ -28,14 +28,52 @@ RUN mkdir -p /tmp && chmod 1777 /tmp
 # 패키지 관리자를 업데이트하고 패키지를 설치합니다.
 RUN apt-get update && apt-get install -y apt-utils
 ```
-#### 2. Dockerfile로 이미지 생성
+##### 2. Dockerfile로 이미지 생성
 `docker build -t dockerfile_image ./apa_folder`  
 
-#### 3. 이미지 목록 확인 
+##### 3. 이미지 목록 확인 
 `docker images`  
 <img width="541" alt="image" src="https://github.com/user-attachments/assets/8be98f65-8197-43e1-b17a-6268972992da">
 
-#### 4. 생성 이미지로 컨테이너 생성
+##### 4. 생성 이미지로 컨테이너 생성
 `docker run --name dockerfile -d -p 8099:80 dockerfile_image`  
 웹브라우저를 통해 http://localhost:8099 접속하여 업데이트된 초기 화면을 확인  
 <img width="277" alt="image" src="https://github.com/user-attachments/assets/c939c93e-5eaa-43c2-b4ba-7e5452a1a5da">
+
+---
+**아파치와 php를 포함하는 도커 이미지로 컨테이너 생성하여 php 파일로 아파치 초기 화면 변경 실습**
+
+##### 1. php 파일을 배치할 디렉토리 생성
+`mkdir test`
+
+##### 2. php 파일 생성
+php 파일 nano 에디터로 디렉토리 경로에 생성  
+`nano ./test/index.php`   
+
+php 파일 내용
+```php
+<?php
+echo "Hello, World!";
+?>
+```
+
+##### 3. 아파치와 php를 포함하는 이미지로 컨테이너 생성
+```bash
+docker run -d -p 8091:80 --name my-apache-php -v ./test:/var/www/html php:7.4-apache
+
+# 컨테이너 내부의 bash 셸로 이동
+docker exec -it my-apache-php bash
+
+# index.php가 호스트 ./test/index.php 파일 내용과 같은지 확인
+cat /var/www/html/index.php
+
+# html 파일은 정적인 파일로, 서버에서 별도의 처리가 필요하지 않지만 php 파일은 동적인 스크립트로 서버에서 처리가 필요
+# php 파일 적용을 위해 아파치 웹 서버 재시작
+# service apache2 restart
+
+# 컨테이너 내부 나가기
+exit
+```
+
+<img width="259" alt="image" src="https://github.com/user-attachments/assets/83b4c300-e24a-4338-a25c-214fed575021">
+
