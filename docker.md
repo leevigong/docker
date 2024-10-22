@@ -325,7 +325,7 @@ IT환경에서 격리된 패키징된 컴퓨팅환경을 제공
 - `docker-compose [명령어] -d`: -d 옵션을 붙이고 경로 정의 없이 도커 컴포즈 명령어를 실행하면 현재 작업 디렉터리를 컴포즈용 폴더로 사용
 - `docker-compose scale [서비스명]=[컨테이너 갯수]`
   - --scale 옵션 : 한번에 여러개 띄움
-  - 예: `docker-compose -f my-docker-compose.yml up --scale filebeat=3`
+  - 예: `docker-compose -f my-docker-compose.yml up --scale filebeat=3`  
 ** scale 사용시 포드 포워드 중복 에러 유의
 	```
 	ports:
